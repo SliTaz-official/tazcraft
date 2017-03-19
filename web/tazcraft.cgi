@@ -78,7 +78,7 @@ case " $(GET) " in
 		html_header "README"
 		echo "<h2>README</h2>"
 		echo "<pre>"
-		# Let have a few color in README
+		# Let's have a few colors in README
 		cat ${README} | sed \
 			-e "/^====.*/"d -e "/^----.*/"d \
 			-e s"#==\([^']*\)==#<h3 style='margin: 0;'>\1</h3>#"g \

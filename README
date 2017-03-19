@@ -12,18 +12,18 @@ Tazcraft is not yet packaged, you have to grab the source from Hg and run
 
 	$ sudo make install
 
-Tazcraft will automaticaly download Minecraft client and start it. Minecraft
-is powered by Java, it may work with icetea but Tazcraft let you install the
+Tazcraft will automatically download a Minecraft client and start it. Minecraft
+is powered by Java, it may work with icetea but Tazcraft lets you install the
 Sun Java Runtime environment, please see the Java section. When Java and 
 Tazcraft are installed you will find a menu entry in the Games category. To
-start playing from command line:
+start playing from a command line:
 
 	$ tazcraft -p
 
 
 == Minecraft server console commands ==
 ----------------------------------------
-Just a few useful console commands Use the built-in help the get all commands:
+Just a few useful console commands Use the built-in help to get all the commands:
 
 	/help [1-9]
 	/op [username]
