@@ -6,24 +6,44 @@ Minecraft server as well as getting the client and starting to play. It can
 also optionally install the Java Runtime Environment (JRE).
 
 
-Server operator
----------------
-From the server console: /op username
+== Play to Minecraft on SliTaz ==
+---------------------------------
+Tazcraft is not yet packaged, you have to grab the source from Hg and run
+
+	$ sudo make install
+
+Tazcraft will automaticaly download Minecraft client and start it. Minecraft
+is powered by Java, it may work with icetea but Tazcraft let you install the
+Sun Java Runtime environment, please see the Java section. When Java and 
+Tazcraft are installed you will find a menu entry in the Games category. To
+start playing from command line:
+
+	$ tazcraft -p
 
 
-Server configuration
---------------------
-Config file: server.properties
+== Minecraft server console commands ==
+----------------------------------------
+Just a few useful console commands Use the built-in help the get all commands:
 
-gamemode=
-	0 - Survival
-	1 - Creative
-	2 - Adventure
-	3 - Spectator
+	/help [1-9]
+	/op [username]
+	/whitelist [on|off|list|add|remove|reload]
+	/stop
 
 
-MOTD text colours and formatting
--------------------------------
+== Server configuration: server.properties ==
+---------------------------------------------
+
+	gamemode=
+		0 - Survival
+		1 - Creative
+		2 - Adventure
+		3 - Spectator
+
+
+== MOTD text colours and formatting ==
+--------------------------------------
+
 	\u00A70 - BLACK
 	\u00A71 - DARK BLUE
 	\u00A72 - DARK GREEN
@@ -47,7 +67,9 @@ MOTD text colours and formatting
 	\u00A7o - Italic
 	\u00A7r - Reset
 
-Online resources
-----------------
 
-MOTD creator: https://mctools.org/motd-creator
+== Online resources ==
+----------------------
+
+	MOTD creator: http://mctools.org/motd-creator
+

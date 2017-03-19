@@ -5,7 +5,7 @@
 # Authors: Kayam Lincoln-Vazquez, Christophe Lincoln
 # Copyright (C) 2017 SliTaz GNU/Linux - BSD License
 #
-# TODO: add spigot support, rcon handler, properties settings
+# TODO: add spigot support, rcon handler ?, properties settings
 #
 . /lib/libtaz.sh
 
@@ -13,6 +13,8 @@ version="1.11.2"
 home="/home/minecraft"
 server="$home/server"
 config="$server/server.properties"
+ops="$server/ops.json"
+whitelist="${server}/whitelist.json"
 
 server_jar="minecraft_server.${version}.jar"
 client_jar="Minecraft.jar"
@@ -20,6 +22,7 @@ client_path="$HOME/.local/share/minecraft/$client_jar"
 
 spigot_jar="spigot-${version}.jar"
 
+# Java settings
 java_version="8u121"
 java_id="218821"
 java_md5="e9e7ea248e2c4826b92b3f075a80e441"
@@ -37,19 +40,24 @@ fi
 help() {
 	cat << EOT
 
-$(colorize 032 Usage:) $(basename $0) command
+$(colorize 032 Usage:) $(basename $0) [command|key] [value]
 
 $(colorize 032 Commands:)
+
   -d  downlaod      Download the Minecraft server
   -s  start         Start your Minecraft server
   -p  play          Launch the Minecraft client
   -j  java          Install Sun Java Runtime Environment
+  -k  key           Get or set a key value in server.properties
   -i  info          Display server and java information
-      motd          Raw display of the Message Of The Day
-      ops           Show server operators name
+  -m  motd          Raw display of the Message Of The Day
+  -o  ops           Show server operators name
+  -w  with-list     Show allowed user from white list
 
 $(colorize 032 Options:)
+
   --gui             Run the server with a graphical user interface
+  --mem             Set the max memory usage for Minecraft server
 
 EOT
 }
@@ -76,10 +84,10 @@ defaut_motd() {
 	fi
 }
 
-# Get a value in
-get_value() {
+# Get a key value from server config file
+get_key() {
 	val=$(grep ^${1}= ${config} | cut -d "=" -f 2)
-	echo -n "$1"; indent 15 ": $val"
+	echo -n "$1"; indent 15 "= $(colorize 033 $val)"
 }
 
 #
@@ -90,21 +98,26 @@ case "$1" in
 	-d|downlaod)
 		if [ ! -f "$server/$jar" ]; then
 			echo "Downloading Minecraft..."
+			
 			mkdir -p ${server}
 			wget --no-check-certificate \
 				https://s3.amazonaws.com/Minecraft.Download/versions/${version}/minecraft_server.${version}.jar \
 				-O ${server}/minecraft_server.${version}.jar
+			
 		else
 			colorize 032 "Minecraft is already downloaded :-)"
 		fi ;;
 	
 	-s|start)
 		check_java || exit 1
-		defaut_motd
+		[ "$mem" ] || mem="1024"
+		
 		colorize 032 "Starting Minecraft server..."
 		[ ! "$gui" ] && opts="nogui"
 		cd ${server}
-		${java} -Xmx1024M -Xms1024M -jar ${server_jar} ${opts} ;;
+		${java} -Xmx${mem}M -Xms${mem}M -jar ${server_jar} ${opts} 
+		
+		newline ;;
 	
 	-p|play)
 		if [ ! -f "$client_path" ]; then
@@ -135,8 +148,17 @@ case "$1" in
 			colorize 032 "Java Runtime Environment is installed"
 			${java} -version
 		fi ;;
+		
+	-k|key)
+		key="$2"
+		val="$3"
+		if [ "$val" ]; then
+			echo "Setting $key to: $val"
+			sed -i s"/${key}=.*/${key}=${val}/" ${config}
+		fi
+		get_key ${key} ;;
 	
-	motd)
+	-m|motd)
 		defaut_motd 
 		motd=$(grep ^motd= ${config} | sed s'/motd=//')
 		title "Message Of The Day (motd)"
@@ -145,39 +167,21 @@ case "$1" in
 	
 	-o|ops)
 		title "Server operators"
-		ops_json="$server/ops.json"
-		#echo "Config file: $server/ops.json"
-		fgrep name ${ops_json} | cut -d '"' -f 4
+		fgrep name ${ops} | cut -d '"' -f 4
+		newline
+		colorize 033 "Config file: $ops"
 		newline ;;
 	
 	-w|white-list)
-		# Usage: tazcraft -w [username|--true|--false]
-		white_list="${server}/white-list.txt"
 		title "Minecraft server white list"
-		
-		case "$2" in
-		
-			--true) 
-				echo "Activaction white list support..."
-				sed -i s'/white-list=*./white-list=true/' ${config}
-				touch ${white_list} ;;
-				
-			--false) ;;
-			*) ;;
-		esac
-		# Add/remove users
-		
-		
-		# --true
-		if [ "$true" ]; then
-			
-		fi
 		
 		# Display white list users or give settings info
 		if [ -f "$white_list" ]; then
+			users=$(wc -l < $white_list)
 			cat  ${white_list}
+			echo -e "\nAllowed users: $users"
 		else
-			get_value "white-list"
+			get_key "white-list"
 			colorize 031 "White list file is not activated $val"
 		fi
 		
@@ -192,9 +196,9 @@ case "$1" in
 		
 		colorize 032 "Server properties"
 		for var in gamemode server-port level-name difficulty max-players \
-			allow-flight
+			allow-flight white-list
 		do
-			get_value ${var}
+			get_key ${var}
 		done
 		newline
 		
