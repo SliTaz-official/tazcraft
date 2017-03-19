@@ -1,0 +1,210 @@
+#!/bin/sh
+#
+# tazcraft - Minecraft server config & admin tool for SliTaz
+#
+# Authors: Kayam Lincoln-Vazquez, Christophe Lincoln
+# Copyright (C) 2017 SliTaz GNU/Linux - BSD License
+#
+# TODO: add spigot support, rcon handler, properties settings
+#
+. /lib/libtaz.sh
+
+version="1.11.2"
+home="/home/minecraft"
+server="$home/server"
+config="$server/server.properties"
+
+server_jar="minecraft_server.${version}.jar"
+client_jar="Minecraft.jar"
+client_path="$HOME/.local/share/minecraft/$client_jar"
+
+spigot_jar="spigot-${version}.jar"
+
+java_version="8u121"
+java_id="218821"
+java_md5="e9e7ea248e2c4826b92b3f075a80e441"
+java_tarball="jre-$java_version-linux-i586.tar.gz"
+
+# Prefer Sun Java JRE but support system wide icedtea6-jre if installed
+java="$home/jre/bin/java"
+if [ ! -x "$java" ]; then
+	java="/usr/bin/java"
+fi
+
+#
+# Functions
+#
+help() {
+	cat << EOT
+
+$(colorize 032 Usage:) $(basename $0) command
+
+$(colorize 032 Commands:)
+  -d  downlaod      Download the Minecraft server
+  -s  start         Start your Minecraft server
+  -p  play          Launch the Minecraft client
+  -j  java          Install Sun Java Runtime Environment
+  -i  info          Display server and java information
+      motd          Raw display of the Message Of The Day
+      ops           Show server operators name
+
+$(colorize 032 Options:)
+  --gui             Run the server with a graphical user interface
+
+EOT
+}
+
+# Commands
+title() {
+	echo ""; colorize 032 "$@"; separator "-"
+}
+
+# Check if Java is installed
+check_java() {
+	if [ ! -x "$java" ]; then
+		colorize 031 "Can't find Java Runtime Environment (JRE)"; return 1
+	fi
+}
+
+# Change default motd
+defaut_motd() {
+	if [ -f "$config" ]; then
+		motd=$(grep ^motd= ${config} | sed s'/motd=//')
+		if [ "$motd" == "A Minecraft Server" ]; then
+			sed -i s'#motd=.*#motd=\\u00A72A Tazcraft Server#' ${config}
+		fi
+	fi
+}
+
+# Get a value in
+get_value() {
+	val=$(grep ^${1}= ${config} | cut -d "=" -f 2)
+	echo -n "$1"; indent 15 ": $val"
+}
+
+#
+# Commands
+#
+case "$1" in
+
+	-d|downlaod)
+		if [ ! -f "$server/$jar" ]; then
+			echo "Downloading Minecraft..."
+			mkdir -p ${server}
+			wget --no-check-certificate \
+				https://s3.amazonaws.com/Minecraft.Download/versions/${version}/minecraft_server.${version}.jar \
+				-O ${server}/minecraft_server.${version}.jar
+		else
+			colorize 032 "Minecraft is already downloaded :-)"
+		fi ;;
+	
+	-s|start)
+		check_java || exit 1
+		defaut_motd
+		colorize 032 "Starting Minecraft server..."
+		[ ! "$gui" ] && opts="nogui"
+		cd ${server}
+		${java} -Xmx1024M -Xms1024M -jar ${server_jar} ${opts} ;;
+	
+	-p|play)
+		if [ ! -f "$client_path" ]; then
+			dest_dir="$(dirname $client_path)"
+			mkdir -p ${dest_dir}
+			xterm -e "wget \
+				http://s3.amazonaws.com/Minecraft.Download/launcher/${client_jar} \
+				-O $client_path"
+		fi
+		${java} -jar ${client_path} & ;;
+	
+	-j|java)
+		if [ ! -x "$home/jre/bin/java" ]; then
+			echo "Installing Java Runtime Environment ($java_version)..."
+			
+			# Already downloaded
+			if [ ! -f "$home/$java_tarball" ]; then
+				wget \
+					http://javadl.oracle.com/webapps/download/AutoDL?BundleId=${java_id}_${java_md5} \
+					-O ${home}/${java_tarball}
+			fi
+			
+			echo "Extracting: ${java_tarball}..."
+			tar xzf ${home}/${java_tarball} -C ${home}  || exit 1
+			rm -rf jre 2>/dev/null && mv ${home}/jre*_*/ ${home}/jre
+			
+		else
+			colorize 032 "Java Runtime Environment is installed"
+			${java} -version
+		fi ;;
+	
+	motd)
+		defaut_motd 
+		motd=$(grep ^motd= ${config} | sed s'/motd=//')
+		title "Message Of The Day (motd)"
+		echo  "$motd" 
+		newline ;;
+	
+	-o|ops)
+		title "Server operators"
+		ops_json="$server/ops.json"
+		#echo "Config file: $server/ops.json"
+		fgrep name ${ops_json} | cut -d '"' -f 4
+		newline ;;
+	
+	-w|white-list)
+		# Usage: tazcraft -w [username|--true|--false]
+		white_list="${server}/white-list.txt"
+		title "Minecraft server white list"
+		
+		case "$2" in
+		
+			--true) 
+				echo "Activaction white list support..."
+				sed -i s'/white-list=*./white-list=true/' ${config}
+				touch ${white_list} ;;
+				
+			--false) ;;
+			*) ;;
+		esac
+		# Add/remove users
+		
+		
+		# --true
+		if [ "$true" ]; then
+			
+		fi
+		
+		# Display white list users or give settings info
+		if [ -f "$white_list" ]; then
+			cat  ${white_list}
+		else
+			get_value "white-list"
+			colorize 031 "White list file is not activated $val"
+		fi
+		
+		newline ;;
+	
+	-i|info)
+		newline
+		colorize 032 "Minecraft Server"
+		echo "Version : $version"
+		echo "Home    : $home"
+		newline
+		
+		colorize 032 "Server properties"
+		for var in gamemode server-port level-name difficulty max-players \
+			allow-flight
+		do
+			get_value ${var}
+		done
+		newline
+		
+		if check_java; then
+			colorize 032 "Java Runtime Environment"
+			echo "Path: $java"
+			${java} -version #2>&1 | grep "version"
+		fi
+		newline ;;
+	
+	*) help ;;
+esac
+exit 0
