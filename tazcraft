@@ -196,7 +196,7 @@ case "$1" in
 		
 		colorize 032 "Server properties"
 		for var in gamemode server-port level-name difficulty max-players \
-			allow-flight white-list
+			allow-flight white-list level-type
 		do
 			get_key ${var}
 		done
