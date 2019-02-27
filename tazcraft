@@ -78,7 +78,7 @@ check_java() {
 defaut_motd() {
 	if [ -f "$config" ]; then
 		motd=$(grep ^motd= ${config} | sed s'/motd=//')
-		if [ "$motd" == "A Minecraft Server" ]; then
+		if [ "$motd" = "A Minecraft Server" ]; then
 			sed -i s'#motd=.*#motd=\\u00A72A Tazcraft Server#' ${config}
 		fi
 	fi
